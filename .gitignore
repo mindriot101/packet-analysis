@@ -2,3 +2,4 @@
 **/*.rs.bk
 captures/*
 !captures/.gitkeep
+db
