@@ -1,2 +1,4 @@
 scapy==2.4.0
 cryptography==2.3.1
+python-geoip==1.2
+python-geoip-geolite2==2015.303
