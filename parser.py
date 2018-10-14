@@ -9,6 +9,7 @@ import logging
 from functools import lru_cache
 import geoip2.database
 import geoip2.errors
+import socket
 from collections import namedtuple
 
 
@@ -20,7 +21,15 @@ GEOLITE_DOWNLOAD_URL = (
 )
 
 
-IpLookup = namedtuple("IpLookup", ["ip", "city", "country"])
+IpLookupBase = namedtuple("IpLookupBase", ["ip", "city", "country", "hostname"])
+
+
+class IpLookup(IpLookupBase):
+    def __str__(self):
+        return "IP address: {self.ip}, city: {self.city}, country: {self.country}, hostname: {hostname}".format(
+            self=self,
+            hostname=self.hostname if self.hostname else "unknown",
+        )
 
 
 class PacketAnalyser(object):
@@ -42,9 +51,14 @@ class PacketAnalyser(object):
 
         for ip in (ip_src, ip_dest):
             if ip != self.source_ip:
-                if ip.startswith('192.168'):
+                if ip.startswith("192.168"):
                     continue
                 response = self.lookup_ip(ip)
+                hostnames = self.get_hostname(ip)
+                if hostnames:
+                    hostname = hostnames[0]
+                else:
+                    hostname = None
                 if response:
                     self.results.add(
                         IpLookup(
@@ -52,6 +66,7 @@ class PacketAnalyser(object):
                                 "ip": ip,
                                 "city": response.city.name,
                                 "country": response.country.name,
+                                "hostname": hostname,
                             }
                         )
                     )
@@ -66,6 +81,13 @@ class PacketAnalyser(object):
             return self.geoip.city(ip_address)
         except geoip2.errors.AddressNotFoundError:
             self.failures.add(ip_address)
+            return None
+
+    @lru_cache()
+    def get_hostname(self, ip_address):
+        try:
+            return socket.gethostbyaddr(ip_address)
+        except socket.herror:
             return None
 
     def setup_geolite(self):
