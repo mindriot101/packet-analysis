@@ -3,13 +3,8 @@
 
 import sys
 import os
-import tempfile
 from scapy.all import IP, rdpcap, TCP
 import argparse
-import urllib.request
-import shutil
-import queue
-import tarfile
 import logging
 from functools import lru_cache
 import geoip2.database
@@ -74,6 +69,11 @@ class PacketAnalyser(object):
             return None
 
     def setup_geolite(self):
+        import tempfile
+        import urllib.request
+        import tarfile
+        import shutil
+
         base_path = os.path.realpath(os.path.dirname(__file__))
         db_path = os.path.join(base_path, "db")
         if not os.path.isdir(db_path):
