@@ -7,10 +7,15 @@ from scapy.all import IP, rdpcap, TCP
 import argparse
 import logging
 from functools import lru_cache
+import datetime
 import geoip2.database
 import geoip2.errors
 import socket
+import numpy as np
+import matplotlib.pyplot as plt
 from collections import namedtuple
+
+plt.style.use(['ggplot', 'seaborn-paper'])
 
 
 logging.basicConfig(level=logging.INFO)
@@ -27,8 +32,7 @@ IpLookupBase = namedtuple("IpLookupBase", ["ip", "city", "country", "hostname"])
 class IpLookup(IpLookupBase):
     def __str__(self):
         return "IP address: {self.ip}, city: {self.city}, country: {self.country}, hostname: {hostname}".format(
-            self=self,
-            hostname=self.hostname if self.hostname else "unknown",
+            self=self, hostname=self.hostname if self.hostname else "unknown"
         )
 
 
@@ -38,8 +42,15 @@ class PacketAnalyser(object):
         self.geoip = self.setup_geolite()
         self.results = set()
         self.failures = set()
+        self.times = []
+        self.packet_sizes = []
 
     def analyse_packet(self, packet):
+
+        # Ensure to collect the packet data
+        self.times.append(packet.time)
+        self.packet_sizes.append(len(packet))
+
         if not packet.haslayer(IP):
             self.analyse_raw_packet(packet)
             return
@@ -74,6 +85,30 @@ class PacketAnalyser(object):
     def analyse_raw_packet(self, packet):
         """ Parse a packet that does not have an IP layer """
         logging.debug("Parsing packet without IP layer: %r", packet)
+
+    def render_data_transferred(self, output_file):
+
+        dates = [datetime.datetime.fromtimestamp(ts) for ts in
+                self.times]
+
+        fig, axes = plt.subplots(2, 1, sharex=True)
+        axes[0].plot(dates, self.packet_sizes, ".")
+
+        cumulative_packet_size = np.cumsum(self.packet_sizes)
+        axes[1].plot(dates, cumulative_packet_size / 1024, "-")
+
+        axes[0].set(ylabel="Packet size / B")
+        axes[1].set(xlabel="Time", ylabel="Cumulative packet size / KB")
+
+        fig.autofmt_xdate()
+
+        fig.tight_layout()
+
+        if output_file is None:
+            plt.show()
+        else:
+            fig.savefig(output_file)
+            plt.close(fig)
 
     @lru_cache()
     def lookup_ip(self, ip_address):
@@ -134,10 +169,13 @@ def main(args):
         print(result)
     print(analyser.failures)
 
+    analyser.render_data_transferred(args.output)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("filename", nargs="+")
+    parser.add_argument("-o", "--output", required=False, help="Output image file")
     parser.add_argument(
         "-s", "--src", help="Source ip of device", type=str, required=True
     )
