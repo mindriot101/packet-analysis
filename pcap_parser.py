@@ -26,7 +26,8 @@ GEOLITE_DOWNLOAD_URL = (
 )
 
 
-IpLookupBase = namedtuple("IpLookupBase", ["ip", "city", "country", "hostname"])
+IpLookupBase = namedtuple("IpLookupBase", ["ip", "city", "country",
+    "hostname", "coordinates"])
 
 
 class IpLookup(IpLookupBase):
@@ -78,6 +79,10 @@ class PacketAnalyser(object):
                                 "city": response.city.name,
                                 "country": response.country.name,
                                 "hostname": hostname,
+                                "coordinates": (
+                                    response.location.latitude,
+                                    response.location.longitude,
+                                    ),
                             }
                         )
                     )

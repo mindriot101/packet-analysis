@@ -20,7 +20,7 @@ The program ignores the _source_ ip of the device (passed in with
 `-s/--src`.
 
 ```sh
-./parser.py -s 192.168.1.60 captures/*.pcap
+./pcap_parser.py -s 192.168.1.60 captures/*.pcap
 ```
 
 ## Contributions
