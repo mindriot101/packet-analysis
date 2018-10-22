@@ -162,6 +162,16 @@ class PacketAnalyser(object):
 
         return geoip2.database.Reader(file_path)
 
+    def render_locations_on_map(self):
+        import folium
+        import json
+
+        m = folium.Map()
+        for result in sorted(list(self.results)):
+            lat, lng = result.coordinates
+            folium.Marker([lat, lng], tooltip=result.city, popup=json.dumps(result._asdict())).add_to(m)
+        return m
+
 
 def main(args):
     analyser = PacketAnalyser(source_ip=args.src)
